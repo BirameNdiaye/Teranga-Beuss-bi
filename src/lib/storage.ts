@@ -6,6 +6,12 @@ import { del, put } from '@vercel/blob'
 
 export const usesBlob = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN)
 
+/** Sur Vercel, le disque est en lecture seule : sans Blob, aucun média ne peut être enregistré. */
+export const BLOB_MISSING_MESSAGE =
+  'Stockage des médias non configuré : reliez un magasin Vercel Blob (public) au projet, puis redéployez.'
+
+export const storageMisconfigured = () => Boolean(process.env.VERCEL) && !usesBlob()
+
 const KEY_PATTERN = /^[\w-]+\/[\w.-]+$/
 
 // Chemins calculés à l'exécution : on demande au bundler de ne pas les tracer.
@@ -27,6 +33,7 @@ export async function saveObject(key: string, body: Buffer, contentType: string)
     })
     return blob.url
   }
+  if (storageMisconfigured()) throw new Error(BLOB_MISSING_MESSAGE)
   const file = localPath(key)
   if (!file) throw new Error('Clé de média invalide')
   await mkdir(path.dirname(file), { recursive: true })

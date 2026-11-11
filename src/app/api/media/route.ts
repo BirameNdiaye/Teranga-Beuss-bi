@@ -1,7 +1,7 @@
 import { currentUser } from '@/lib/auth'
 import { finalizeBlobUpload, isMediaKind, MediaError, storeUpload } from '@/lib/media'
 import { hit } from '@/lib/rate-limit'
-import { usesBlob } from '@/lib/storage'
+import { BLOB_MISSING_MESSAGE, storageMisconfigured, usesBlob } from '@/lib/storage'
 
 const toJson = (media: Awaited<ReturnType<typeof storeUpload>>) => ({
   id: media.id,
@@ -20,6 +20,10 @@ const toJson = (media: Awaited<ReturnType<typeof storeUpload>>) => ({
 export async function POST(request: Request) {
   const userId = (await currentUser())?.id
   if (!userId) return Response.json({ error: 'Connexion requise.' }, { status: 401 })
+  if (storageMisconfigured()) {
+    console.error(BLOB_MISSING_MESSAGE)
+    return Response.json({ error: BLOB_MISSING_MESSAGE }, { status: 503 })
+  }
   if (!(await hit(`upload:${userId}`, 60, 60 * 60_000))) {
     return Response.json({ error: "Trop d'envois. Réessayez plus tard." }, { status: 429 })
   }
@@ -43,7 +47,9 @@ export async function POST(request: Request) {
     }
     return Response.json(toJson(await storeUpload(userId, kind, file, String(form?.get('alt') ?? ''))))
   } catch (error) {
-    const message = error instanceof MediaError ? error.message : "L'envoi a échoué. Réessayez."
-    return Response.json({ error: message }, { status: error instanceof MediaError ? 400 : 500 })
+    if (error instanceof MediaError) return Response.json({ error: error.message }, { status: 400 })
+    // Cause visible dans les journaux Vercel (Logs) ; le message reste générique pour l'utilisateur.
+    console.error('Envoi de média échoué', error)
+    return Response.json({ error: "L'envoi a échoué. Réessayez." }, { status: 500 })
   }
 }
