@@ -49,6 +49,7 @@ export default async function InvitationPage({ params }: Params) {
           fontPair: row.fontPair,
           animations: row.animations,
           visibility: row.visibility,
+          showLanguageSwitcher: row.showLanguageSwitcher,
         }}
       />
     )

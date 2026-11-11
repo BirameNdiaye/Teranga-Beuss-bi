@@ -127,3 +127,26 @@ test('une invitation protégée demande le code avant d’afficher quoi que ce s
   await expect(guest.getByText('Grande mosquée de Rufisque').first()).toBeAttached()
   await visitor.close()
 })
+
+test('les mariés peuvent masquer le choix de langue', async ({ page, browser }) => {
+  await login(page)
+  await page.goto(`${invitationUrl}/editer`)
+  // Invitation repassée en publique pour ce test (le précédent l'a protégée par code).
+  await page.getByRole('button', { name: /Vérification/ }).click()
+  await page.getByRole('radio', { name: /Publique par lien/ }).click()
+  await page.getByRole('button', { name: /Design/ }).click()
+  const toggle = page.getByRole('checkbox', { name: 'Afficher le choix de langue (FR · WO · EN)' })
+  await expect(toggle).toBeChecked()
+  await toggle.uncheck({ force: true })
+  await waitSaved(page)
+
+  const visitor = await browser.newContext()
+  const guest = await visitor.newPage()
+  // Un invité qui avait choisi le wolof auparavant retrouve la page en français.
+  await guest.addInitScript(() => window.localStorage.setItem('teranga-lang', 'wo'))
+  await guest.goto(`/i/${slug}`)
+  await openEnvelope(guest)
+  await expect(guest.getByRole('group', { name: 'Langue / Language' })).toHaveCount(0)
+  await expect(guest.getByText('Serez-vous des nôtres ?')).toBeAttached()
+  await visitor.close()
+})

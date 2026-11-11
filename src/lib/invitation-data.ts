@@ -67,6 +67,7 @@ export function toInvitationView(row: LoadedInvitation): InvitationView {
     overlay: row.overlay,
     accentColor: row.accentColor,
     animations: row.animations,
+    showLanguageSwitcher: row.showLanguageSwitcher,
     rsvpDeadline: row.rsvpDeadline?.toISOString() ?? null,
     visibility: row.visibility,
     contacts: row.contacts.map(({ id, name, role, whatsapp }) => ({ id, name, role, whatsapp })),

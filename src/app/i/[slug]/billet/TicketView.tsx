@@ -12,23 +12,26 @@ type Props = {
   startsAt: string | null
   place: string
   checkedInAt: string | null
+  showLanguageSwitcher: boolean
 }
 
 export function TicketView(props: Props) {
   return (
-    <LanguageProvider>
+    <LanguageProvider locked={!props.showLanguageSwitcher}>
       <Ticket {...props} />
     </LanguageProvider>
   )
 }
 
-function Ticket({ slug, names, guestName, partySize, qrSvg, startsAt, place, checkedInAt }: Props) {
+function Ticket({ slug, names, guestName, partySize, qrSvg, startsAt, place, checkedInAt, showLanguageSwitcher }: Props) {
   const { t, formatDate } = useLanguage()
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-10">
-      <div className="mb-6 self-end rounded-full bg-(--inv-primary)/85 p-1">
-        <LanguageSwitcher />
-      </div>
+      {showLanguageSwitcher && (
+        <div className="liquid-glass mb-6 self-end rounded-full bg-(--inv-primary) p-1">
+          <LanguageSwitcher />
+        </div>
+      )}
       <article className="w-full overflow-hidden rounded-3xl bg-(--inv-surface) text-center shadow-[0_30px_60px_-30px_rgb(0_0_0/0.45)]">
         <header className="bg-(--inv-primary) px-6 py-6 text-white">
           <p className="font-(family-name:--font-caps) text-[11px] tracking-[0.35em] uppercase opacity-85">

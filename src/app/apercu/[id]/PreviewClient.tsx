@@ -26,7 +26,7 @@ export function PreviewClient({ initialView }: { initialView: InvitationView }) 
   }, [])
 
   return (
-    <LanguageProvider>
+    <LanguageProvider locked={!view.showLanguageSwitcher}>
       <GuestContextProvider
         value={{ slug: view.slug, invitationId: view.id, token: null, guest: null, accessCode: null, preview: true }}
       >

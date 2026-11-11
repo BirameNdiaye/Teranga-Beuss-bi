@@ -100,9 +100,11 @@ export function GuestExperience({
       </main>
 
       <div className={`${fixed} top-4 right-4 z-[60] flex items-center gap-2`}>
-        <div className="rounded-full bg-(--inv-primary) p-1 shadow-lg">
-          <LanguageSwitcher />
-        </div>
+        {view.showLanguageSwitcher && (
+          <div className="liquid-glass rounded-full bg-(--inv-primary) p-1 shadow-lg">
+            <LanguageSwitcher />
+          </div>
+        )}
         {view.musicUrl && (
           <>
             <audio ref={audioRef} src={view.musicUrl} loop preload="none" />

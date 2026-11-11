@@ -96,6 +96,7 @@ export async function saveInvitation(invitationId: string, raw: InvitationInput)
         overlay: data.overlay,
         accentColor: data.accentColor || null,
         animations: data.animations,
+        showLanguageSwitcher: data.showLanguageSwitcher,
         visibility: data.visibility,
         accessCodeHash,
         rsvpDeadline: data.rsvpDeadline ? fromDakarInput(data.rsvpDeadline) : null,

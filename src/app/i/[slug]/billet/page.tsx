@@ -26,6 +26,7 @@ export default async function TicketPage({ params, searchParams }: Props) {
           theme: true,
           accentColor: true,
           fontPair: true,
+          showLanguageSwitcher: true,
           events: { orderBy: { startsAt: 'asc' }, take: 1 },
         },
       },
@@ -57,6 +58,7 @@ export default async function TicketPage({ params, searchParams }: Props) {
         startsAt={first?.startsAt.toISOString() ?? null}
         place={[first?.venue, first?.address].filter(Boolean).join(' · ')}
         checkedInAt={rsvp.checkIn?.createdAt.toISOString() ?? null}
+        showLanguageSwitcher={invitation.showLanguageSwitcher}
       />
     </div>
   )

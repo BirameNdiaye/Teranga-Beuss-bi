@@ -25,18 +25,23 @@ const format = (lang: Lang, iso: string, options: Intl.DateTimeFormatOptions) =>
   }
 }
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
+export function LanguageProvider({ children, locked = false }: { children: ReactNode; locked?: boolean }) {
   // Toujours « fr » au rendu serveur ; la préférence enregistrée s'applique après le montage.
+  // `locked` : le choix de langue est masqué par les mariés, la page reste en français.
   const [lang, setLangState] = useState<Lang>('fr')
 
   useEffect(() => {
+    if (locked) {
+      setLangState('fr')
+      return
+    }
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY) as Lang | null
       if (saved && languages.includes(saved)) setLangState(saved)
     } catch {
       // Stockage indisponible : on garde le français.
     }
-  }, [])
+  }, [locked])
 
   useEffect(() => {
     document.documentElement.lang = lang
@@ -88,7 +93,9 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
           onClick={() => setLang(code)}
           aria-pressed={lang === code}
           className={`min-h-11 min-w-11 rounded-full px-3 text-xs font-semibold tracking-wider uppercase transition ${
-            lang === code ? 'bg-white text-(--inv-primary)' : 'text-white/90 hover:bg-white/15'
+            lang === code
+              ? 'bg-white text-(--inv-primary) shadow-sm'
+              : 'text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.35)] hover:bg-white/20'
           }`}
         >
           {code}

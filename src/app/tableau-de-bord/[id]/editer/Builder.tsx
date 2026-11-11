@@ -159,6 +159,7 @@ export function Builder(props: {
       overlay: form.overlay,
       accentColor: form.accentColor || null,
       animations: form.animations,
+      showLanguageSwitcher: form.showLanguageSwitcher,
       rsvpDeadline: validDate(form.rsvpDeadline),
       visibility: form.visibility,
       contacts: form.contacts.map((c, index) => ({ id: c.id ?? `c-${index}`, name: c.name, role: c.role, whatsapp: c.whatsapp })),

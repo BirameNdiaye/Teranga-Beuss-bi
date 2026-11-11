@@ -47,7 +47,7 @@ export function PublicInvitation({ view, children }: { view: InvitationView; chi
   }, [view.slug])
 
   return (
-    <LanguageProvider>
+    <LanguageProvider locked={!view.showLanguageSwitcher}>
       <GuestContextProvider
         value={{ slug: view.slug, invitationId: view.id, token, guest, accessCode: null, preview: false }}
       >
@@ -64,13 +64,21 @@ export function PublicInvitation({ view, children }: { view: InvitationView; chi
 
 type Teaser = Pick<
   InvitationView,
-  'slug' | 'partnerOne' | 'partnerTwo' | 'theme' | 'accentColor' | 'fontPair' | 'animations' | 'visibility'
+  | 'slug'
+  | 'partnerOne'
+  | 'partnerTwo'
+  | 'theme'
+  | 'accentColor'
+  | 'fontPair'
+  | 'animations'
+  | 'visibility'
+  | 'showLanguageSwitcher'
 >
 
 /** Invitation protégée : rien n'est envoyé au navigateur avant le code ou le lien personnel. */
 export function ProtectedInvitation({ teaser }: { teaser: Teaser }) {
   return (
-    <LanguageProvider>
+    <LanguageProvider locked={!teaser.showLanguageSwitcher}>
       <ProtectedInner teaser={teaser} />
     </LanguageProvider>
   )
@@ -131,9 +139,11 @@ function ProtectedInner({ teaser }: { teaser: Teaser }) {
 
   return (
     <ThemeFrame view={teaser} className="grid place-items-center px-4">
-      <div className="absolute top-4 right-4 rounded-full bg-(--inv-primary)/85 p-1">
-        <LanguageSwitcher />
-      </div>
+      {teaser.showLanguageSwitcher && (
+        <div className="liquid-glass absolute top-4 right-4 rounded-full bg-(--inv-primary) p-1">
+          <LanguageSwitcher />
+        </div>
+      )}
       <div className="w-full max-w-sm py-16 text-center">
         <p className="font-(family-name:--font-caps) text-xs font-semibold tracking-[0.4em] text-(--inv-accent) uppercase">
           {t('gate.title')}

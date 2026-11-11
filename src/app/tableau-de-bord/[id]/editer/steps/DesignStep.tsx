@@ -94,6 +94,17 @@ export function DesignStep({ form, update, errors }: StepProps) {
         </Field>
         <Toggle checked={form.animations} onChange={(animations) => update({ animations })} label="Animations (enveloppe 3D, lumières, apparitions)" />
       </StepCard>
+
+      <StepCard
+        title="Langues"
+        subtitle="Masquée, la page reste en français pour tous les invités. Affichée, chacun choisit sa langue en haut de l’écran."
+      >
+        <Toggle
+          checked={form.showLanguageSwitcher}
+          onChange={(showLanguageSwitcher) => update({ showLanguageSwitcher })}
+          label="Afficher le choix de langue (FR · WO · EN)"
+        />
+      </StepCard>
     </>
   )
 }

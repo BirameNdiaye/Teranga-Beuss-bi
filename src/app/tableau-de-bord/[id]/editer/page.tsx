@@ -37,6 +37,7 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
     overlay: row.overlay,
     accentColor: row.accentColor ?? '',
     animations: row.animations,
+    showLanguageSwitcher: row.showLanguageSwitcher,
     visibility: row.visibility,
     accessCode: '',
     clearAccessCode: false,

@@ -47,6 +47,7 @@ export type InvitationView = {
   overlay: number
   accentColor: string | null
   animations: boolean
+  showLanguageSwitcher: boolean
   rsvpOpen: boolean
   rsvpDeadline: string | null
   visibility: VisibilityName

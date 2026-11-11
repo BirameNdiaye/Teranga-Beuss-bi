@@ -102,6 +102,8 @@ model Invitation {
   overlay          Int              @default(55)
   accentColor      String?          @db.VarChar(9)
   animations       Boolean          @default(true)
+  /// Affiche le choix de langue (FR · WO · EN) en haut de la page invité.
+  showLanguageSwitcher Boolean      @default(true)
   coverId          String?
   cover            Media?           @relation("InvitationCover", fields: [coverId], references: [id], onDelete: SetNull)
   videoId          String?

@@ -53,6 +53,7 @@ export const invitationSchema = z.object({
     .trim()
     .refine((value) => !value || /^#(?:[0-9a-f]{3}){1,2}$/i.test(value), 'Couleur hexadécimale attendue (#B07A4A).'),
   animations: z.boolean(),
+  showLanguageSwitcher: z.boolean(),
   visibility: z.enum(['public', 'code', 'private']),
   /** Nouveau code d'accès ; vide = conserver l'actuel. */
   accessCode: z
