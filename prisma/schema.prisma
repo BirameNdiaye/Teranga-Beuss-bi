@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Language {
+  fr
+  wo
+  en
+}
+
+enum InvitationStatus {
+  draft
+  published
+  archived
+}
+
+enum Visibility {
+  public
+  code
+  private
+}
+
+enum Theme {
+  dore
+  sauge
+  bordeaux
+  minimal
+}
+
+enum FontPair {
+  script
+  classic
+  modern
+}
+
+enum HeroLayout {
+  centered
+  bottom
+  editorial
+}
+
+enum MediaKind {
+  image
+  video
+  audio
+}
+
+enum Attendance {
+  yes
+  no
+  maybe
+}
+
+enum RsvpSource {
+  link
+  personal
+  qr
+}
+
+enum GuestbookStatus {
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id                String          @id @default(cuid())
+  email             String          @unique @db.VarChar(191)
+  passwordHash      String          @db.VarChar(255)
+  name              String          @db.VarChar(100)
+  phone             String?         @db.VarChar(30)
+  preferredLanguage Language        @default(fr)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  invitations       Invitation[]    @relation("InvitationOwner")
+  coOrganizing      CoOrganizer[]
+  media             Media[]
+}
+
+model Invitation {
+  id               String           @id @default(cuid())
+  ownerId          String
+  owner            User             @relation("InvitationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  slug             String           @unique @db.VarChar(100)
+  partnerOne       String           @db.VarChar(80)
+  partnerTwo       String           @db.VarChar(80)
+  story            String?          @db.Text
+  thankYouMessage  String?          @db.Text
+  shareMessage     String?          @db.VarChar(240)
+  status           InvitationStatus @default(draft)
+  visibility       Visibility       @default(public)
+  accessCodeHash   String?          @db.VarChar(255)
+  rsvpDeadline     DateTime?
+  theme            Theme            @default(dore)
+  fontPair         FontPair         @default(script)
+  heroLayout       HeroLayout       @default(centered)
+  overlay          Int              @default(55)
+  accentColor      String?          @db.VarChar(9)
+  animations       Boolean          @default(true)
+  coverId          String?
+  cover            Media?           @relation("InvitationCover", fields: [coverId], references: [id], onDelete: SetNull)
+  videoId          String?
+  video            Media?           @relation("InvitationVideo", fields: [videoId], references: [id], onDelete: SetNull)
+  musicId          String?
+  music            Media?           @relation("InvitationMusic", fields: [musicId], references: [id], onDelete: SetNull)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  coOrganizers     CoOrganizer[]
+  events           Event[]
+  gallery          GalleryItem[]
+  contacts         Contact[]
+  guests           Guest[]
+  rsvps            Rsvp[]
+  guestbook        GuestbookEntry[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model CoOrganizer {
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([invitationId, userId])
+  @@index([userId])
+}
+
+model Event {
+  id           String     @id @default(cuid())
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  startsAt     DateTime
+  category     String     @db.VarChar(40)
+  title        String     @db.VarChar(120)
+  venue        String?    @db.VarChar(160)
+  address      String?    @db.VarChar(200)
+  latitude     Decimal?   @db.Decimal(9, 6)
+  longitude    Decimal?   @db.Decimal(9, 6)
+  mapsUrl      String?    @db.VarChar(500)
+  position     Int        @default(0)
+
+  @@index([invitationId, position])
+}
+
+model Media {
+  id        String        @id @default(cuid())
+  ownerId   String
+  owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  key       String        @unique @db.VarChar(255)
+  kind      MediaKind
+  mimeType  String        @db.VarChar(100)
+  width     Int?
+  height    Int?
+  alt       String        @default("") @db.VarChar(200)
+  createdAt DateTime      @default(now())
+  covers    Invitation[]  @relation("InvitationCover")
+  videos    Invitation[]  @relation("InvitationVideo")
+  musics    Invitation[]  @relation("InvitationMusic")
+  gallery   GalleryItem[]
+
+  @@index([ownerId])
+}
+
+model GalleryItem {
+  id           String     @id @default(cuid())
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  mediaId      String
+  media        Media      @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  position     Int        @default(0)
+
+  @@unique([invitationId, mediaId])
+  @@index([invitationId, position])
+}
+
+model Contact {
+  id           String     @id @default(cuid())
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  name         String     @db.VarChar(100)
+  role         String     @db.VarChar(60)
+  phone        String     @db.VarChar(30)
+  whatsapp     Boolean    @default(true)
+  position     Int        @default(0)
+
+  @@index([invitationId])
+}
+
+model Guest {
+  id           String     @id @default(cuid())
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  name         String     @db.VarChar(120)
+  phone        String?    @db.VarChar(30)
+  seats        Int        @default(1)
+  token        String     @unique @db.VarChar(64)
+  group        String?    @db.VarChar(80)
+  sentAt       DateTime?
+  openedAt     DateTime?
+  createdAt    DateTime   @default(now())
+  rsvp         Rsvp?
+
+  @@index([invitationId])
+}
+
+model Rsvp {
+  id           String     @id @default(cuid())
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  guestId      String?    @unique
+  guest        Guest?     @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  name         String     @db.VarChar(120)
+  phone        String?    @db.VarChar(30)
+  attendance   Attendance
+  partySize    Int        @default(1)
+  message      String?    @db.VarChar(500)
+  source       RsvpSource @default(link)
+  ticketToken  String     @unique @db.VarChar(64)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  checkIn      CheckIn?
+
+  @@index([invitationId, attendance])
+}
+
+model CheckIn {
+  id          String   @id @default(cuid())
+  rsvpId      String   @unique
+  rsvp        Rsvp     @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  scannedById String?
+  createdAt   DateTime @default(now())
+}
+
+model GuestbookEntry {
+  id           String          @id @default(cuid())
+  invitationId String
+  invitation   Invitation      @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  author       String          @db.VarChar(100)
+  message      String          @db.VarChar(600)
+  status       GuestbookStatus @default(pending)
+  createdAt    DateTime        @default(now())
+
+  @@index([invitationId, status])
+}

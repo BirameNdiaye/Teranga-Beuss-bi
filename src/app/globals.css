@@ -1,0 +1,177 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-script: var(--font-great-vibes), cursive;
+  --font-serif: var(--font-playfair), Georgia, serif;
+  --font-caps: var(--font-montserrat), var(--font-inter), sans-serif;
+  --color-sand-50: #fbf7f1;
+  --color-sand-100: #f6eee3;
+  --color-cocoa-900: #3e2a1f;
+  --color-cocoa-700: #6b3f28;
+  --color-caramel: #b07a4a;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--inv-accent, #b07a4a);
+    outline-offset: 3px;
+  }
+}
+
+/* Paires de polices de la page invité */
+.font-pair-script {
+  --font-names: var(--font-script);
+  --font-text: var(--font-serif);
+}
+.font-pair-classic {
+  --font-names: var(--font-serif);
+  --font-text: var(--font-serif);
+}
+.font-pair-modern {
+  --font-names: var(--font-caps);
+  --font-text: var(--font-sans);
+}
+.font-pair-classic .names {
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+.font-pair-modern .names {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 300;
+  font-size: 0.74em;
+}
+
+/* Animations */
+.inv-rise {
+  animation: inv-rise 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.inv-ken-burns {
+  animation: inv-ken-burns 18s ease-in-out infinite alternate;
+}
+.inv-heartbeat {
+  animation: inv-heartbeat 2.4s ease-in-out infinite;
+}
+.inv-bokeh {
+  opacity: 0;
+  animation: inv-bokeh-float 20s linear infinite;
+}
+
+@supports (animation-timeline: view()) {
+  .inv-reveal {
+    animation: inv-rise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 30%;
+  }
+}
+
+.inv-envelope {
+  perspective: 1000px;
+}
+.inv-envelope-card,
+.inv-envelope-flap,
+.inv-envelope-seal {
+  transition:
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 500ms ease;
+}
+.inv-envelope-flap {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+.inv-envelope-open .inv-envelope-seal {
+  opacity: 0;
+  transform: scale(0.4) rotate(-20deg);
+}
+.inv-envelope-open .inv-envelope-flap {
+  transform: rotateX(180deg);
+}
+.inv-envelope-open .inv-envelope-card {
+  transform: translateY(-62%);
+  transition-delay: 380ms;
+  z-index: 5;
+}
+.inv-envelope-leave {
+  animation: inv-fade-out 700ms ease 1000ms forwards;
+}
+
+[data-animations='off'] *,
+[data-animations='off'] *::before,
+[data-animations='off'] *::after {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+}
+
+@keyframes inv-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes inv-ken-burns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.07);
+  }
+}
+@keyframes inv-heartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+@keyframes inv-bokeh-float {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  15% {
+    opacity: 0.35;
+  }
+  85% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(30px, -110vh, 0);
+  }
+}
+@keyframes inv-fade-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .inv-bokeh {
+    display: none;
+  }
+}
