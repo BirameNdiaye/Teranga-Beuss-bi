@@ -1,11 +1,8 @@
 import 'server-only'
 import { headers } from 'next/headers'
+import { db } from './db'
 
-type Bucket = { count: number; resetAt: number }
-
-// Limiteur en mémoire : suffisant pour une instance unique. Avec plusieurs
-// instances, remplacez-le par un compteur partagé (Redis, MySQL).
-const buckets = new Map<string, Bucket>()
+// Compteurs stockés en base : partagés par toutes les instances (Vercel en lance plusieurs).
 
 export async function clientKey(scope: string) {
   const h = await headers()
@@ -14,18 +11,26 @@ export async function clientKey(scope: string) {
 }
 
 /** Retourne true si l'appel est autorisé, false si la limite est atteinte. */
-export function hit(key: string, limit: number, windowMs: number) {
-  const now = Date.now()
-  const bucket = buckets.get(key)
-  if (!bucket || bucket.resetAt < now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs })
-    if (buckets.size > 10_000) {
-      for (const [k, b] of buckets) if (b.resetAt < now) buckets.delete(k)
+export async function hit(key: string, limit: number, windowMs: number) {
+  const now = BigInt(Date.now())
+  const resetAt = now + BigInt(windowMs)
+  try {
+    // Opération atomique : la fenêtre repart à zéro quand elle a expiré.
+    const rows = await db.$queryRaw<{ count: number }[]>`
+      INSERT INTO "RateLimit" ("key", "count", "resetAt") VALUES (${key.slice(0, 191)}, 1, ${resetAt})
+      ON CONFLICT ("key") DO UPDATE SET
+        "count" = CASE WHEN "RateLimit"."resetAt" < ${now} THEN 1 ELSE "RateLimit"."count" + 1 END,
+        "resetAt" = CASE WHEN "RateLimit"."resetAt" < ${now} THEN EXCLUDED."resetAt" ELSE "RateLimit"."resetAt" END
+      RETURNING "count"`
+    if (Math.random() < 0.01) {
+      await db.$executeRaw`DELETE FROM "RateLimit" WHERE "resetAt" < ${now - 86_400_000n}`
     }
+    return Number(rows[0]?.count ?? 1) <= limit
+  } catch (error) {
+    // Une panne du compteur ne doit pas bloquer les mariés ni leurs invités.
+    console.error('Limiteur indisponible', error)
     return true
   }
-  bucket.count += 1
-  return bucket.count <= limit
 }
 
 export async function allow(scope: string, limit: number, windowMs: number) {

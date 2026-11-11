@@ -1,13 +1,14 @@
 import 'server-only'
-import { PrismaMariaDb } from '@prisma/adapter-mariadb'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@/generated/prisma/client'
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
 function createClient() {
-  const url = process.env.DATABASE_URL
-  if (!url) throw new Error('DATABASE_URL manquant')
-  return new PrismaClient({ adapter: new PrismaMariaDb(url) })
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) throw new Error('DATABASE_URL manquant')
+  // Petit pool : sur Vercel chaque instance a le sien, et Neon mutualise via son pooler.
+  return new PrismaClient({ adapter: new PrismaPg({ connectionString, max: Number(process.env.DB_POOL_MAX ?? 5) }) })
 }
 
 export const db = globalForPrisma.prisma ?? createClient()

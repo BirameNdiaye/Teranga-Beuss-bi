@@ -8,11 +8,13 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // Image Docker autonome ; Vercel utilise son propre format de sortie.
+  output: process.env.VERCEL ? undefined : 'standalone',
   serverExternalPackages: ['@node-rs/argon2', 'sharp'],
   images: {
-    // Les médias sont servis par l'application elle-même (/media/...).
-    localPatterns: [{ pathname: '/media/**' }, { pathname: '/**' }],
+    // En local, médias servis par /media/... ; en ligne, par Vercel Blob.
+    localPatterns: [{ pathname: '/**' }],
+    remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com' }],
   },
   async headers() {
     return [

@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 enum Language {
@@ -154,7 +154,10 @@ model Media {
   id        String        @id @default(cuid())
   ownerId   String
   owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  /// Chemin dans le stockage (« <utilisateur>/<jeton>.webp »).
   key       String        @unique @db.VarChar(255)
+  /// Adresse publique : URL Vercel Blob en ligne, /media/<clé> en local.
+  url       String        @db.VarChar(600)
   kind      MediaKind
   mimeType  String        @db.VarChar(100)
   width     Int?
@@ -249,4 +252,14 @@ model GuestbookEntry {
   createdAt    DateTime        @default(now())
 
   @@index([invitationId, status])
+}
+
+/// Compteurs de limitation des requêtes, partagés entre toutes les instances.
+model RateLimit {
+  key     String @id @db.VarChar(191)
+  count   Int
+  /// Fin de la fenêtre, en millisecondes depuis 1970 (évite les questions de fuseau).
+  resetAt BigInt
+
+  @@index([resetAt])
 }

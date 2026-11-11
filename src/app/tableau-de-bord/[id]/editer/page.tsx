@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import { requireManagedInvitation } from '@/lib/access'
 import { toDakarInput } from '@/lib/dates'
 import { db } from '@/lib/db'
-import { getInvitationById, mediaUrl } from '@/lib/invitation-data'
+import { getInvitationById } from '@/lib/invitation-data'
+import { usesBlob } from '@/lib/storage'
 import type { InvitationInput } from '@/lib/invitation-schema'
 import { Builder, type LibraryMedia } from './Builder'
 
@@ -60,7 +61,7 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
 
   const library: LibraryMedia[] = media.map((item) => ({
     id: item.id,
-    url: mediaUrl(item.key),
+    url: item.url,
     kind: item.kind,
     width: item.width,
     height: item.height,
@@ -75,6 +76,7 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
       status={row.status}
       hasAccessCode={Boolean(row.accessCodeHash)}
       isOwner={row.ownerId === user.id}
+      upload={{ mode: usesBlob() ? 'blob' : 'local', userId: user.id }}
       coOrganizers={coOrganizers.map((c) => c.user)}
       guestbook={row.guestbook.map((entry) => ({
         id: entry.id,

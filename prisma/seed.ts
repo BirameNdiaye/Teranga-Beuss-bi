@@ -1,11 +1,11 @@
 // Données de démonstration : un mariage complet sur deux jours.
 // Lancement : docker compose run --rm web npm run seed
 import { createHmac, randomBytes } from 'node:crypto'
-import { CreateBucketCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { hash } from '@node-rs/argon2'
-import { PrismaMariaDb } from '@prisma/adapter-mariadb'
+import { PrismaPg } from '@prisma/adapter-pg'
 import sharp from 'sharp'
 import { PrismaClient } from '../src/generated/prisma/client'
+import { saveObject } from '../src/lib/storage'
 
 const env = (name: string) => {
   const value = process.env[name]
@@ -13,14 +13,7 @@ const env = (name: string) => {
   return value
 }
 
-const db = new PrismaClient({ adapter: new PrismaMariaDb(env('DATABASE_URL')) })
-const bucket = process.env.S3_BUCKET ?? 'teranga-media'
-const s3 = new S3Client({
-  endpoint: env('S3_ENDPOINT'),
-  region: process.env.S3_REGION ?? 'us-east-1',
-  forcePathStyle: true,
-  credentials: { accessKeyId: env('S3_ACCESS_KEY'), secretAccessKey: env('S3_SECRET_KEY') },
-})
+const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: env('DATABASE_URL') }) })
 
 const token = () => randomBytes(24).toString('base64url')
 const argon = { memoryCost: 19456, timeCost: 2, parallelism: 1 }
@@ -60,9 +53,10 @@ function artwork(index: number, label: string) {
 async function upload(ownerId: string, index: number, label: string, alt: string) {
   const { data, info } = await sharp(artwork(index, label)).webp({ quality: 82 }).toBuffer({ resolveWithObject: true })
   const key = `${ownerId}/${token()}.webp`
-  await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: data, ContentType: 'image/webp' }))
+  // Vercel Blob si BLOB_READ_WRITE_TOKEN est défini, sinon le dossier local.
+  const url = await saveObject(key, data, 'image/webp')
   return db.media.create({
-    data: { ownerId, key, kind: 'image', mimeType: 'image/webp', width: info.width, height: info.height, alt },
+    data: { ownerId, key, url, kind: 'image', mimeType: 'image/webp', width: info.width, height: info.height, alt },
   })
 }
 
@@ -83,8 +77,6 @@ async function revalidate(slugs: string[]) {
 }
 
 async function main() {
-  await s3.send(new HeadBucketCommand({ Bucket: bucket })).catch(() => s3.send(new CreateBucketCommand({ Bucket: bucket })))
-
   const email = env('SEED_USER_EMAIL').toLowerCase()
   const password = env('SEED_USER_PASSWORD')
 

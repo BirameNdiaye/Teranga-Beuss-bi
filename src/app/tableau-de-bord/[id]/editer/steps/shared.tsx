@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useId, useRef, useState, type ReactNode } from 'react'
 import type { LibraryMedia } from '../Builder'
 
 export function StepCard({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
@@ -70,6 +70,48 @@ const accept = {
   audio: 'audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/wav,audio/x-m4a',
 }
 
+/** Mode d'envoi : « blob » = direct vers Vercel Blob (en ligne), « local » = via le serveur (Docker). */
+export type UploadConfig = { mode: 'blob' | 'local'; userId: string }
+export const UploadConfigContext = createContext<UploadConfig>({ mode: 'local', userId: '' })
+
+const safeName = (name: string) =>
+  name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w.-]+/g, '-')
+    .slice(-80) || 'fichier'
+
+async function sendFile(file: File, kind: LibraryMedia['kind'], config: UploadConfig, onProgress: (pct: number) => void) {
+  const alt = file.name.replace(/\.[^.]+$/, '').slice(0, 120)
+  let response: Response
+  if (config.mode === 'blob') {
+    // Le fichier va directement au stockage : pas de limite de taille côté serveur.
+    const { upload } = await import('@vercel/blob/client')
+    const blob = await upload(`${config.userId}/${safeName(file.name)}`, file, {
+      access: 'public',
+      handleUploadUrl: '/api/media/blob',
+      clientPayload: kind,
+      contentType: file.type,
+      multipart: file.size > 8 * 1024 * 1024,
+      onUploadProgress: ({ percentage }) => onProgress(percentage),
+    })
+    response = await fetch('/api/media', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url: blob.url, kind, alt }),
+    })
+  } else {
+    const body = new FormData()
+    body.set('file', file)
+    body.set('kind', kind)
+    body.set('alt', alt)
+    response = await fetch('/api/media', { method: 'POST', body })
+  }
+  const json = await response.json()
+  if (!response.ok) throw new Error(json.error ?? 'Envoi impossible.')
+  return json as LibraryMedia
+}
+
 export function UploadButton({
   kind,
   multiple = false,
@@ -81,6 +123,7 @@ export function UploadButton({
   label: string
   onUploaded: (media: LibraryMedia) => void
 }) {
+  const config = useContext(UploadConfigContext)
   const inputId = useId()
   const input = useRef<HTMLInputElement>(null)
   const [progress, setProgress] = useState<string | null>(null)
@@ -91,18 +134,12 @@ export function UploadButton({
     setError(null)
     const list = [...files]
     for (const [index, file] of list.entries()) {
-      setProgress(list.length > 1 ? `Envoi ${index + 1}/${list.length}…` : 'Envoi…')
-      const body = new FormData()
-      body.set('file', file)
-      body.set('kind', kind)
-      body.set('alt', file.name.replace(/\.[^.]+$/, '').slice(0, 120))
+      const prefix = list.length > 1 ? `Envoi ${index + 1}/${list.length}` : 'Envoi'
+      setProgress(`${prefix}…`)
       try {
-        const response = await fetch('/api/media', { method: 'POST', body })
-        const json = await response.json()
-        if (!response.ok) setError(json.error ?? 'Envoi impossible.')
-        else onUploaded(json as LibraryMedia)
-      } catch {
-        setError('Connexion perdue pendant l’envoi.')
+        onUploaded(await sendFile(file, kind, config, (pct) => setProgress(`${prefix} ${Math.round(pct)} %`)))
+      } catch (error) {
+        setError(error instanceof Error && error.message !== 'Failed to fetch' ? error.message : 'Connexion perdue pendant l’envoi.')
       }
     }
     setProgress(null)

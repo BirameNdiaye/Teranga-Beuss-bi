@@ -1,5 +1,5 @@
 // Modèle d'affichage de la page invité. Pur et sérialisable : il est construit
-// côté serveur depuis MySQL, et côté client par l'aperçu du constructeur.
+// côté serveur depuis la base, et côté client par l'aperçu du constructeur.
 import { dayKey, timeOf } from './dates'
 
 export type ThemeName = 'dore' | 'sauge' | 'bordeaux' | 'minimal'

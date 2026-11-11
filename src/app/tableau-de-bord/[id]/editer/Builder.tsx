@@ -19,6 +19,7 @@ import { MediaStep } from './steps/MediaStep'
 import { DesignStep } from './steps/DesignStep'
 import { ReviewStep } from './steps/ReviewStep'
 import { ShareStep } from './steps/ShareStep'
+import { UploadConfigContext, type UploadConfig } from './steps/shared'
 
 export type LibraryMedia = {
   id: string
@@ -53,6 +54,7 @@ export function Builder(props: {
   isOwner: boolean
   coOrganizers: { id: string; name: string; email: string }[]
   guestbook: GuestbookView[]
+  upload: UploadConfig
 }) {
   const router = useRouter()
   const [form, setForm] = useState<BuilderForm>(props.initial as BuilderForm)
@@ -183,6 +185,7 @@ export function Builder(props: {
   const stepProps: StepProps = { form, update, errors, library, addMedia }
 
   return (
+    <UploadConfigContext.Provider value={props.upload}>
     <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_400px]">
       <div className="min-w-0">
         <div className="sticky top-16 z-20 -mx-4 mb-6 border-b border-cocoa-900/8 bg-sand-100/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border sm:bg-white/90">
@@ -293,6 +296,7 @@ export function Builder(props: {
         <PhonePreview invitationId={props.invitationId} view={view} envelopeNonce={envelopeNonce} />
       </aside>
     </div>
+    </UploadConfigContext.Provider>
   )
 }
 

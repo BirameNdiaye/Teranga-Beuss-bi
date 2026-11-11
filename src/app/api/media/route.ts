@@ -1,33 +1,47 @@
-import { auth } from '@/lib/auth'
-import { MediaError, storeUpload, type MediaKind } from '@/lib/media'
+import { currentUser } from '@/lib/auth'
+import { finalizeBlobUpload, isMediaKind, MediaError, storeUpload } from '@/lib/media'
 import { hit } from '@/lib/rate-limit'
+import { usesBlob } from '@/lib/storage'
 
-const kinds: MediaKind[] = ['image', 'video', 'audio']
+const toJson = (media: Awaited<ReturnType<typeof storeUpload>>) => ({
+  id: media.id,
+  url: media.url,
+  kind: media.kind,
+  width: media.width,
+  height: media.height,
+  alt: media.alt,
+})
 
+/**
+ * Deux usages :
+ * - multipart/form-data : envoi classique, stockage local uniquement ;
+ * - JSON { url, kind, alt } : enregistrement d'un fichier déjà déposé dans Vercel Blob.
+ */
 export async function POST(request: Request) {
-  const userId = (await auth())?.user?.id
+  const userId = (await currentUser())?.id
   if (!userId) return Response.json({ error: 'Connexion requise.' }, { status: 401 })
-  if (!hit(`upload:${userId}`, 60, 60 * 60_000)) {
+  if (!(await hit(`upload:${userId}`, 60, 60 * 60_000))) {
     return Response.json({ error: "Trop d'envois. Réessayez plus tard." }, { status: 429 })
   }
 
-  const form = await request.formData().catch(() => null)
-  const file = form?.get('file')
-  const kind = form?.get('kind') as MediaKind | null
-  if (!(file instanceof File) || !kind || !kinds.includes(kind)) {
-    return Response.json({ error: 'Fichier manquant.' }, { status: 400 })
-  }
-
   try {
-    const media = await storeUpload(userId, kind, file, String(form?.get('alt') ?? ''))
-    return Response.json({
-      id: media.id,
-      url: `/media/${media.key}`,
-      kind: media.kind,
-      width: media.width,
-      height: media.height,
-      alt: media.alt,
-    })
+    if (request.headers.get('content-type')?.includes('application/json')) {
+      const body = (await request.json().catch(() => null)) as { url?: unknown; kind?: unknown; alt?: unknown } | null
+      if (!usesBlob() || !body || typeof body.url !== 'string' || !isMediaKind(body.kind)) {
+        return Response.json({ error: 'Requête invalide.' }, { status: 400 })
+      }
+      return Response.json(toJson(await finalizeBlobUpload(userId, body.kind, body.url, String(body.alt ?? ''))))
+    }
+
+    // Sur Vercel, un corps de requête est limité à ~4,5 Mo : l'envoi doit passer par Blob.
+    if (usesBlob()) return Response.json({ error: 'Utilisez l’envoi direct.' }, { status: 400 })
+    const form = await request.formData().catch(() => null)
+    const file = form?.get('file')
+    const kind = form?.get('kind')
+    if (!(file instanceof File) || !isMediaKind(kind)) {
+      return Response.json({ error: 'Fichier manquant.' }, { status: 400 })
+    }
+    return Response.json(toJson(await storeUpload(userId, kind, file, String(form?.get('alt') ?? ''))))
   } catch (error) {
     const message = error instanceof MediaError ? error.message : "L'envoi a échoué. Réessayez."
     return Response.json({ error: message }, { status: error instanceof MediaError ? 400 : 500 })

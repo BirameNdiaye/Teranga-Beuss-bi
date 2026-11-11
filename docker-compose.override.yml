@@ -12,6 +12,7 @@ services:
     volumes:
       - .:/app
       - web-node-modules:/app/node_modules
+      - media-data:/app/storage
       - web-next:/app/.next
 
   adminer:

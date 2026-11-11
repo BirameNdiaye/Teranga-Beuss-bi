@@ -19,8 +19,8 @@ COPY . .
 # La génération de pages ne doit pas dépendre de la base : les pages invité
 # sont produites à la première visite puis mises en cache.
 # `prisma generate` lit prisma.config.ts : une adresse factice suffit, aucune connexion n'est ouverte.
-RUN DATABASE_URL=mysql://build:build@localhost:3306/build npx prisma generate \
-  && DATABASE_URL=mysql://build:build@localhost:3306/build npx next build
+RUN DATABASE_URL=postgresql://build:build@localhost:5432/build npx prisma generate \
+  && DATABASE_URL=postgresql://build:build@localhost:5432/build npx next build
 
 FROM base AS runner
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
@@ -33,6 +33,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts /app/package.json ./
 COPY --from=builder --chown=nextjs:nodejs /app/src/generated ./src/generated
+# Médias du stockage local (volume Docker).
+RUN mkdir -p /app/storage && chown nextjs:nodejs /app/storage
 USER nextjs
 EXPOSE 3000
 CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]

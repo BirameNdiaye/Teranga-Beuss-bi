@@ -1,28 +1,36 @@
+import { createReadStream } from 'node:fs'
+import { Readable } from 'node:stream'
 import { db } from '@/lib/db'
-import { getObject } from '@/lib/storage'
+import { readLocalObject } from '@/lib/storage'
 
-// Les clés sont uniques et jamais réécrites : les fichiers peuvent être mis en cache longtemps.
+// Médias du stockage local (Docker). En ligne, les médias sont servis directement par Vercel Blob.
+// Les clés ne sont jamais réécrites : les fichiers peuvent être mis en cache longtemps.
 export async function GET(request: Request, { params }: { params: Promise<{ key: string[] }> }) {
   const key = (await params).key.join('/')
-  if (!/^[\w-]+\/[\w.-]+$/.test(key)) return new Response('Introuvable', { status: 404 })
-
   const media = await db.media.findUnique({ where: { key }, select: { mimeType: true } })
-  if (!media) return new Response('Introuvable', { status: 404 })
+  const object = media ? await readLocalObject(key) : null
+  if (!media || !object) return new Response('Introuvable', { status: 404 })
 
-  const range = request.headers.get('range') ?? undefined
-  try {
-    const object = await getObject(key, range)
-    const body = object.Body?.transformToWebStream()
-    if (!body) return new Response('Introuvable', { status: 404 })
-    const headers = new Headers({
-      'Content-Type': media.mimeType,
-      'Cache-Control': 'public, max-age=31536000, immutable',
-      'Accept-Ranges': 'bytes',
-    })
-    if (object.ContentLength != null) headers.set('Content-Length', String(object.ContentLength))
-    if (object.ContentRange) headers.set('Content-Range', object.ContentRange)
-    return new Response(body, { status: object.ContentRange ? 206 : 200, headers })
-  } catch {
-    return new Response('Introuvable', { status: 404 })
+  const headers = new Headers({
+    'Content-Type': media.mimeType,
+    'Cache-Control': 'public, max-age=31536000, immutable',
+    'Accept-Ranges': 'bytes',
+  })
+
+  // Lecture partielle pour l'audio et la vidéo (Safari l'exige).
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') ?? '')
+  if (range && (range[1] || range[2])) {
+    const start = range[1] ? Number(range[1]) : Math.max(0, object.size - Number(range[2]))
+    const end = range[1] && range[2] ? Math.min(Number(range[2]), object.size - 1) : object.size - 1
+    if (start >= object.size || start > end) {
+      return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${object.size}` } })
+    }
+    headers.set('Content-Range', `bytes ${start}-${end}/${object.size}`)
+    headers.set('Content-Length', String(end - start + 1))
+    const stream = Readable.toWeb(createReadStream(object.file, { start, end })) as ReadableStream
+    return new Response(stream, { status: 206, headers })
   }
+
+  headers.set('Content-Length', String(object.size))
+  return new Response(Readable.toWeb(createReadStream(object.file)) as ReadableStream, { headers })
 }

@@ -3,14 +3,12 @@ import { cache } from 'react'
 import { db } from './db'
 import { buildView, type ImageView, type InvitationView } from './invitation-view'
 
-export const mediaUrl = (key: string) => `/media/${key}`
-
-type MediaRow = { key: string; kind: string; alt: string; width: number | null; height: number | null }
+type MediaRow = { url: string; kind: string; alt: string; width: number | null; height: number | null }
 
 const toImage = (media: MediaRow | null | undefined, fallbackAlt: string): ImageView | null =>
   media && media.kind === 'image'
     ? {
-        url: mediaUrl(media.key),
+        url: media.url,
         alt: media.alt || fallbackAlt,
         width: media.width ?? 1200,
         height: media.height ?? 1500,
@@ -61,8 +59,8 @@ export function toInvitationView(row: LoadedInvitation): InvitationView {
     gallery: row.gallery
       .map((item, index) => toImage(item.media, `${names} — photo ${index + 1}`))
       .filter((image): image is ImageView => image !== null),
-    musicUrl: row.music?.kind === 'audio' ? mediaUrl(row.music.key) : null,
-    videoUrl: row.video?.kind === 'video' ? mediaUrl(row.video.key) : null,
+    musicUrl: row.music?.kind === 'audio' ? row.music.url : null,
+    videoUrl: row.video?.kind === 'video' ? row.video.url : null,
     theme: row.theme,
     fontPair: row.fontPair,
     heroLayout: row.heroLayout,

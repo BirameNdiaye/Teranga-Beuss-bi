@@ -5,7 +5,6 @@ import { managedBy } from '@/lib/access'
 import { requireUser } from '@/lib/auth'
 import { formatFr } from '@/lib/dates'
 import { db } from '@/lib/db'
-import { mediaUrl } from '@/lib/invitation-data'
 import { createInvitation } from './actions'
 
 const statusLabel = { draft: 'Brouillon', published: 'Publiée', archived: 'Archivée' } as const
@@ -68,7 +67,7 @@ export default async function DashboardPage() {
                   <div className="relative aspect-[16/10] bg-cocoa-700">
                     {invitation.cover && (
                       <Image
-                        src={mediaUrl(invitation.cover.key)}
+                        src={invitation.cover.url}
                         alt=""
                         fill
                         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"

@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { currentUser } from '@/lib/auth'
 import { canManage } from '@/lib/access'
 import { toCsv } from '@/lib/csv'
 import { formatFr } from '@/lib/dates'
@@ -8,7 +8,7 @@ const attendance = { yes: 'Présent', maybe: 'Peut-être', no: 'Absent' } as con
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const userId = (await auth())?.user?.id
+  const userId = (await currentUser())?.id
   if (!userId || !(await canManage(userId, id))) return new Response('Introuvable', { status: 404 })
 
   const invitation = await db.invitation.findUnique({ where: { id }, select: { slug: true } })

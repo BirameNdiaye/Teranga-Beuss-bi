@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
+import { currentUser } from '@/lib/auth'
 import { AuthForm } from '../AuthForm'
 
 export const metadata: Metadata = { title: 'Connexion' }
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  if ((await auth())?.user?.id) redirect('/tableau-de-bord')
+  if (await currentUser()) redirect('/tableau-de-bord')
   const { next } = await searchParams
   return (
     <>
