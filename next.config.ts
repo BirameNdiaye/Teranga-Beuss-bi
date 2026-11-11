@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   // Image Docker autonome ; Vercel utilise son propre format de sortie.
   output: process.env.VERCEL ? undefined : 'standalone',
   serverExternalPackages: ['@node-rs/argon2', 'sharp'],
+  // Polices lues à l'exécution pour dessiner les vignettes de partage.
+  outputFileTracingIncludes: { '/i/[slug]/vignette': ['./src/assets/fonts/**/*'] },
   images: {
     // En local, médias servis par /media/... ; en ligne, par Vercel Blob.
     localPatterns: [{ pathname: '/**' }],

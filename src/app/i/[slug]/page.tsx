@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { InvitationBody } from '@/components/invitation/InvitationBody'
 import { ProtectedInvitation, PublicInvitation } from '@/components/invitation/InvitationShell'
 import { getPublishedInvitation, toInvitationView } from '@/lib/invitation-data'
+import { SHARE_CARD_SIZE } from '@/lib/share-card'
 
 type Params = { params: Promise<{ slug: string }> }
 
@@ -18,18 +19,30 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!row) return { title: 'Invitation introuvable', robots: { index: false } }
   const title = `${row.partnerOne} & ${row.partnerTwo} — Notre mariage`
   const isPublic = row.visibility === 'public'
-  const view = isPublic ? toInvitationView(row) : null
+  const description = isPublic
+    ? toInvitationView(row).shareMessage
+    : 'Vous êtes invité(e). Ouvrez votre faire-part.'
+  // Vignette dédiée (JPEG 1200 × 630, léger) ; ?v= force WhatsApp à recharger après une modification.
+  const image = {
+    url: `/i/${row.slug}/vignette?v=${row.updatedAt.getTime()}`,
+    ...SHARE_CARD_SIZE,
+    type: 'image/jpeg',
+    alt: `Faire-part de mariage de ${row.partnerOne} et ${row.partnerTwo}`,
+  }
   return {
     title,
-    description: view?.shareMessage ?? 'Vous êtes invité(e). Ouvrez votre faire-part.',
+    description,
     robots: { index: false, follow: false },
     openGraph: {
       title,
-      description: view?.shareMessage,
-      images: view?.cover ? [view.cover.url] : undefined,
+      description,
+      url: `/i/${row.slug}`,
+      siteName: 'Teranga Invit',
+      locale: 'fr_FR',
       type: 'website',
+      images: [image],
     },
-    twitter: { card: view?.cover ? 'summary_large_image' : 'summary', title },
+    twitter: { card: 'summary_large_image', title, description, images: [image.url] },
   }
 }
 

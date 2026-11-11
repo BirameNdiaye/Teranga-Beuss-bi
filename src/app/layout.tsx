@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Great_Vibes, Inter, Montserrat, Playfair_Display } from 'next/font/google'
 import type { ReactNode } from 'react'
 import { ServiceWorker } from '@/components/ServiceWorker'
+import { siteUrl } from '@/lib/site'
 import './globals.css'
 
 // Inter sert surtout au tableau de bord : pas de préchargement sur la page invité.
@@ -15,10 +16,8 @@ const playfair = Playfair_Display({
   variable: '--font-playfair',
 })
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(siteUrl()),
   title: { default: 'Teranga Invit — Faire-part de mariage numériques', template: '%s | Teranga Invit' },
   description:
     'Créez un faire-part de mariage numérique inoubliable : enveloppe animée, programme, cartes, réponses des invités et billets QR.',
